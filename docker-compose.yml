@@ -3,6 +3,10 @@ version: '3.7'
 networks:
   mulesoft-network:
     driver: bridge
+  elk-network:
+    driver: bridge
+  kong-network:
+    driver: bridge
 volumes:
   esdata:
     driver: local
@@ -119,23 +123,23 @@ services:
     # - cluster.name=docker-cluster
     - bootstrap.memory_lock=true
     - ES_JAVA_OPTS=-Xmx256m -Xms256m
-    - ELASTIC_PASSWORD=changeme
+    # - ELASTIC_PASSWORD=changeme
     - discovery.type=single-node
     ports:
     - 9200:9200
     - 9300:9300
     networks:
     - mulesoft-network
-    # volumes:
-    # - ./volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    volumes:
+    - ./volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
 
   logstash:
     container_name: logstash
     image: docker.elastic.co/logstash/logstash:7.10.2
-    environment:
+    # environment:
     # - bootstrap.memory_lock=true
-    - LS_JAVA_OPTS=-Xmx256m -Xms256m
-    - discovery.type=single-node
+    # - LS_JAVA_OPTS=-Xmx256m -Xms256m
+    # - discovery.type=single-node
     ports:
     - 5044:5044
     - 5000:5000
@@ -145,19 +149,38 @@ services:
     networks:
     - mulesoft-network
     volumes:
-    # - ./volumes/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-    - ./volumes/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    - ./volumes/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+    - ./volumes/logstash/pipeline:/usr/share/logstash/pipeline
+
+  filebeat:
+    container_name: filebeat
+    image: docker.elastic.co/beats/filebeat:7.10.2
+    # ports:
+    # - 9200:9200
+    environment: 
+    - setup.kibana.host=kibana:5601
+    - output.elasticsearch.hosts=["elasticsearch:9200"]
+    # depends_on:
+    # - elasticsearch
+    networks:
+    - mulesoft-network
+    volumes:
+    - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    # - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    # - /var/run/docker.sock:/var/run/docker.sock:ro
 
   kibana:
     container_name: kibana
     image: docker.elastic.co/kibana/kibana:7.10.2
     ports:
     - 5601:5601
-    environment: 
-    - ELASTICSEARCH_URL="http://elasticsearch:9200"
-    # depends_on:
-    # - elasticsearch
+    # environment: 
+    # - ELASTICSEARCH_URL="http://elasticsearch:9200"
+    depends_on:
+    - elasticsearch
+    links: 
+    - elasticsearch
     networks:
     - mulesoft-network
-    # volumes:
-    # - ./volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    volumes:
+    - ./volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
