@@ -45,8 +45,8 @@ RUN chmod +x /usr/local/bin/install-mulesoft
 RUN /usr/local/bin/install-mulesoft
 
 # Copy apps into Systen
-RUN mkdir -p /tmp/apps
-COPY ./apps/ /tmp/apps
+# RUN mkdir -p /tmp/apps
+# COPY ./apps/ /tmp/apps
 
 # Execute Mulesoft
 COPY ./mule-start /usr/local/bin/mule-start
@@ -55,7 +55,7 @@ RUN chmod +x /usr/local/bin/mule-start
 CMD /usr/local/bin/mule-start
 
 # Define mount points.
-VOLUME ["/opt/mule/logs", "/opt/mule/apps", "/opt/mule/domains", "/opt/mule/conf", "/opt/mule/patches", "/opt/mule/plugins", "/opt/mule/server-plugins", "/opt/mule/policies"]
+# VOLUME ["/opt/mule/logs", "/opt/mule/apps", "/opt/mule/domains", "/opt/mule/conf", "/opt/mule/patches", "/opt/mule/plugins", "/opt/mule/server-plugins", "/opt/mule/policies"]
 
 # Define working directory.
 WORKDIR /opt

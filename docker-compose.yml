@@ -6,6 +6,10 @@ networks:
 volumes:
   esdata:
     driver: local
+  mulesoftlogs:
+    driver: local
+  kongdb:
+    driver: local
 
 services:
 
@@ -57,7 +61,7 @@ services:
     ports:
     - 8000:8000
     - 8443:8443
-    - 8001:8001\
+    - 8001:8001
     - 8444:8444
     networks:
     - mulesoft-network
@@ -101,18 +105,18 @@ services:
     networks:
     - mulesoft-network
     volumes:
-    - /opt/mule/apps /home/mule4/apps 
-    - /opt/mule/domains /home/mule4/domains 
-    - /opt/mule/logs /home/mule4/logs 
+    - ./volumes/mulesoft/apps:/opt/mule-standalone-4.2.0-hf1/apps
+    - ./volumes/mulesoft/domains:/opt/mule-standalone-4.2.0-hf1/domains
+    - mulesoftlogs:/opt/mule-standalone-4.2.0-hf1/logs
 
   elasticsearch:
     container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
     environment:
-    - node.name=elasticsearch
-    - discovery.seed_hosts=elasticsearch
-    - cluster.initial_master_nodes=elasticsearch
-    - cluster.name=docker-cluster
+    # - node.name=elasticsearch
+    # - discovery.seed_hosts=elasticsearch
+    # - cluster.initial_master_nodes=elasticsearch
+    # - cluster.name=docker-cluster
     - bootstrap.memory_lock=true
     - ES_JAVA_OPTS=-Xmx256m -Xms256m
     - ELASTIC_PASSWORD=changeme
@@ -123,7 +127,7 @@ services:
     networks:
     - mulesoft-network
     # volumes:
-    # - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    # - ./volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
 
   logstash:
     container_name: logstash
@@ -140,9 +144,9 @@ services:
     # - elasticsearch
     networks:
     - mulesoft-network
-    # volumes:
-    # - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-    # - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    volumes:
+    # - ./volumes/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    - ./volumes/logstash/pipeline:/usr/share/logstash/pipeline:ro
 
   kibana:
     container_name: kibana
@@ -156,4 +160,4 @@ services:
     networks:
     - mulesoft-network
     # volumes:
-    # - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    # - ./volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
