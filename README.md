@@ -1,6 +1,6 @@
-# Commerce Open Source Framework
+# Integration System Framework
 
-Componentes para a criação das imagens e das configurações necessárias para aplicação Commerce Open Source Framework.
+Componentes para a criação das imagens e das configurações necessárias para aplicação Integration System Framework.
 
 ### Requisitos
 * [Docker] - Open platform for developing, shipping, and running applications
