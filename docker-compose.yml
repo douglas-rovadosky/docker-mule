@@ -8,35 +8,49 @@ networks:
   kong-network:
     driver: bridge
 volumes:
-  esdata:
-    driver: local
+  elasticsearch:
   mulesoftlogs:
     driver: local
   kongdb:
     driver: local
 
 services:
+  mulesoft:
+    container_name: mulesoft
+    build: ./docker/mulesoft
+    restart: always
+    ports:
+    - 8081:8081
+    networks:
+    - mulesoft-network
+    # volumes:
+    # - ./volumes/mulesoft/apps:/opt/mulesoft/apps:ro
+    # - ./volumes/mulesoft/domains:/opt/mulesoft/domains:ro
+    # - mulesoftlogs:/opt/mulesoft/logs
 
   kong-database:
     container_name: kong-database
     image: postgres:11-alpine
     restart: always
     networks:
-    - mulesoft-network
+    - kong-network
     environment: 
     - POSTGRES_USER=kong
     - POSTGRES_DB=kong
     - POSTGRES_PASSWORD=kong
     - POSTGRES_HOST_AUTH_METHOD=trust
     ports:
-      - 5432:5432
+    - 5432:5432
+    volumes:
+    - kongdb:/var/lib/postgresql/data
 
+  # somente executar a primeira vez 
   kong-migration:
     container_name: kong-migration
     image: kong:2.0.3-alpine
     command: kong migrations bootstrap
     networks:
-    - mulesoft-network
+    - kong-network
     restart: on-failure
     environment: 
     - KONG_PG_HOST=kong-database
@@ -61,7 +75,7 @@ services:
     - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
     - KONG_DB_UPDATE_FREQUENCY=1m
     depends_on:
-    - kong-migration
+    - kong-database
     ports:
     - 8000:8000
     - 8443:8443
@@ -69,13 +83,16 @@ services:
     - 8444:8444
     networks:
     - mulesoft-network
+    - elk-network
+    - kong-network
 
+  # somente executar a primeira vez
   konga-prepare:
     container_name: konga-prepare
     image: pantsel/konga:0.14.9
     command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
     networks:
-    - mulesoft-network
+    - kong-network
     restart: on-failure
     links:
     - kong-database
@@ -87,7 +104,7 @@ services:
     image: pantsel/konga:0.14.9
     restart: always
     networks:
-    - mulesoft-network
+    - kong-network
     environment: 
     - DB_ADAPTER=postgres
     - DB_HOST=kong-database
@@ -100,87 +117,83 @@ services:
     ports:
       - 1337:1337
 
-  mulesoft:
-    container_name: mulesoft
-    build: ./docker/mulesoft
-    restart: always
-    ports:
-    - 8081:8081
-    networks:
-    - mulesoft-network
-    volumes:
-    - ./volumes/mulesoft/apps:/opt/mule-standalone-4.2.0-hf1/apps
-    - ./volumes/mulesoft/domains:/opt/mule-standalone-4.2.0-hf1/domains
-    - mulesoftlogs:/opt/mule-standalone-4.2.0-hf1/logs
-
   elasticsearch:
     container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
-    environment:
-    # - node.name=elasticsearch
-    # - discovery.seed_hosts=elasticsearch
-    # - cluster.initial_master_nodes=elasticsearch
-    # - cluster.name=docker-cluster
-    - bootstrap.memory_lock=true
-    - ES_JAVA_OPTS=-Xmx256m -Xms256m
-    # - ELASTIC_PASSWORD=changeme
-    - discovery.type=single-node
     ports:
     - 9200:9200
     - 9300:9300
-    networks:
-    - mulesoft-network
+    environment:
+    - ES_JAVA_OPTS=-Xmx256m -Xms256m
+    - ELASTIC_PASSWORD=changeme
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+    - discovery.type=single-node
     volumes:
-    - ./volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    - type: bind
+      source: ./volumes/elasticsearch/config/elasticsearch.yml
+      target: /usr/share/elasticsearch/config/elasticsearch.yml
+      read_only: true
+    - type: volume
+      source: elasticsearch
+      target: /usr/share/elasticsearch/data
+    networks:
+    - elk-network
 
   logstash:
     container_name: logstash
     image: docker.elastic.co/logstash/logstash:7.10.2
-    # environment:
-    # - bootstrap.memory_lock=true
-    # - LS_JAVA_OPTS=-Xmx256m -Xms256m
-    # - discovery.type=single-node
     ports:
-    - 5044:5044
-    - 5000:5000
-    - 9600:9600
-    # depends_on:
-    # - elasticsearch
-    networks:
-    - mulesoft-network
+    - "5044:5044"
+    - "5000:5000/tcp"
+    - "5000:5000/udp"
+    - "9600:9600"
+    environment:
+    - LS_JAVA_OPTS=-Xmx256m -Xms256m
     volumes:
-    - ./volumes/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
-    - ./volumes/logstash/pipeline:/usr/share/logstash/pipeline
-
-  filebeat:
-    container_name: filebeat
-    image: docker.elastic.co/beats/filebeat:7.10.2
-    # ports:
-    # - 9200:9200
-    environment: 
-    - setup.kibana.host=kibana:5601
-    - output.elasticsearch.hosts=["elasticsearch:9200"]
-    # depends_on:
-    # - elasticsearch
+    # - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro equivalente aos comandos a baixo
+    - type: bind
+      source: ./volumes/logstash/config/logstash.yml
+      target: /usr/share/logstash/config/logstash.yml
+      read_only: true
+    - type: bind
+      source: ./volumes/logstash/pipeline
+      target: /usr/share/logstash/pipeline
+      read_only: true
     networks:
-    - mulesoft-network
-    volumes:
-    - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-    # - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    # - /var/run/docker.sock:/var/run/docker.sock:ro
+    - elk-network
+    depends_on: 
+    - elasticsearch
 
   kibana:
     container_name: kibana
     image: docker.elastic.co/kibana/kibana:7.10.2
     ports:
     - 5601:5601
-    # environment: 
-    # - ELASTICSEARCH_URL="http://elasticsearch:9200"
+    networks:
+    - elk-network
+    volumes:
+    - type: bind
+      source: ./volumes/kibana/config/kibana.yml
+      target: /usr/share/kibana/config/kibana.yml
+      read_only: true
     depends_on:
     - elasticsearch
-    links: 
-    - elasticsearch
-    networks:
-    - mulesoft-network
-    volumes:
-    - ./volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+
+  # filebeat:
+  #   container_name: filebeat
+  #   image: docker.elastic.co/beats/filebeat:7.10.2
+  #   # ports:
+  #   # - 9200:9200
+  #   environment: 
+  #   - setup.kibana.host=kibana:5601
+  #   - output.elasticsearch.hosts=["elasticsearch:9200"]
+  #   # depends_on:
+  #   # - elasticsearch
+  #   networks:
+  #   - elk-network
+  #   volumes:
+  #   - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+  #   # - /var/lib/docker/containers:/var/lib/docker/containers:ro
+  #   # - /var/run/docker.sock:/var/run/docker.sock:ro
+

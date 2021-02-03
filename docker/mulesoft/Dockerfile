@@ -2,7 +2,7 @@
 FROM ubuntu:20.04
 
 # Define environment variables.
-ENV MULE_HOME /opt/mule-standalone-4.2.0-hf1
+ENV MULE_HOME /opt/mulesoft
 ENV JAVA_HOME /opt/java/openjdk
 # ENV LANG pt_BR.utf8
 
@@ -10,7 +10,7 @@ RUN mkdir -p $MULE_HOME
 RUN mkdir -p $JAVA_HOME
 
 # Update Ubuntu Software repository
-RUN apt update
+RUN apt-get update
 
 # Set locale
 # RUN apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
@@ -26,8 +26,8 @@ RUN apt-get install -y \
 COPY OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz /tmp
 # online file
 # RUN set -eux; \
-#   curl -LfsSo /tmp/OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u-2020-12-07-09-17/OpenJDK8U-jdk_aarch64_linux_hotspot_2020-12-07-09-17.tar.gz; \
-#   echo "5c94caeff823078fdb7f60d9cac0d9c2e5569763165b3fb4167f3d761161ffb3 */tmp/OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz" | sha256sum -c -; 
+#   curl /tmp/OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u282-b08/OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz; \
+#   echo "e6e6e0356649b9696fa5082cfcb0663d4bef159fc22d406e3a012e71fce83a5c */tmp/OpenJDK8U-jdk_x64_linux_hotspot_8u282b08.tar.gz" | sha256sum -c -; 
 
 COPY ./install-openjdk /usr/local/bin/install-openjdk
 RUN chmod +x /usr/local/bin/install-openjdk
@@ -45,8 +45,8 @@ RUN chmod +x /usr/local/bin/install-mulesoft
 RUN /usr/local/bin/install-mulesoft
 
 # Copy apps into Systen
-# RUN mkdir -p /tmp/apps
-# COPY ./apps/ /tmp/apps
+RUN mkdir -p /tmp/apps
+COPY ./apps/ /tmp/apps
 
 # Execute Mulesoft
 COPY ./mule-start /usr/local/bin/mule-start
@@ -59,11 +59,12 @@ CMD /usr/local/bin/mule-start
 
 # Define working directory.
 WORKDIR /opt
+# WORKDIR /opt/mulesoft
 
 # Configure (default ports) external access:
 
 # Mule remote debugger
-EXPOSE 5000
+# EXPOSE 5000
 
 # Mule project port
 EXPOSE 8081
