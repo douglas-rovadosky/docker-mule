@@ -23,10 +23,11 @@ services:
     - 8081:8081
     networks:
     - mulesoft-network
-    # volumes:
+    - elk-network
+    volumes:
     # - ./volumes/mulesoft/apps:/opt/mulesoft/apps:ro
     # - ./volumes/mulesoft/domains:/opt/mulesoft/domains:ro
-    # - mulesoftlogs:/opt/mulesoft/logs
+    - mulesoftlogs:/opt/mulesoft/logs
 
   kong-database:
     container_name: kong-database
@@ -45,19 +46,19 @@ services:
     - kongdb:/var/lib/postgresql/data
 
   # somente executar a primeira vez 
-  kong-migration:
-    container_name: kong-migration
-    image: kong:2.0.3-alpine
-    command: kong migrations bootstrap
-    networks:
-    - kong-network
-    restart: on-failure
-    environment: 
-    - KONG_PG_HOST=kong-database
-    links:
-    - kong-database
-    depends_on:
-    - kong-database
+  # kong-migration:
+  #   container_name: kong-migration
+  #   image: kong:2.0.3-alpine
+  #   command: kong migrations bootstrap
+  #   networks:
+  #   - kong-network
+  #   restart: on-failure
+  #   environment: 
+  #   - KONG_PG_HOST=kong-database
+  #   links:
+  #   - kong-database
+  #   depends_on:
+  #   - kong-database
 
   kong:
     container_name: kong
@@ -87,17 +88,17 @@ services:
     - kong-network
 
   # somente executar a primeira vez
-  konga-prepare:
-    container_name: konga-prepare
-    image: pantsel/konga:0.14.9
-    command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
-    networks:
-    - kong-network
-    restart: on-failure
-    links:
-    - kong-database
-    depends_on:
-    - kong-database
+  # konga-prepare:
+  #   container_name: konga-prepare
+  #   image: pantsel/konga:0.14.9
+  #   command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
+  #   networks:
+  #   - kong-network
+  #   restart: on-failure
+  #   links:
+  #   - kong-database
+  #   depends_on:
+  #   - kong-database
   
   konga:
     container_name: konga
@@ -126,8 +127,6 @@ services:
     environment:
     - ES_JAVA_OPTS=-Xmx256m -Xms256m
     - ELASTIC_PASSWORD=changeme
-      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
-      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
     - discovery.type=single-node
     volumes:
     - type: bind
@@ -151,7 +150,6 @@ services:
     environment:
     - LS_JAVA_OPTS=-Xmx256m -Xms256m
     volumes:
-    # - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro equivalente aos comandos a baixo
     - type: bind
       source: ./volumes/logstash/config/logstash.yml
       target: /usr/share/logstash/config/logstash.yml
@@ -180,20 +178,15 @@ services:
     depends_on:
     - elasticsearch
 
-  # filebeat:
-  #   container_name: filebeat
-  #   image: docker.elastic.co/beats/filebeat:7.10.2
-  #   # ports:
-  #   # - 9200:9200
-  #   environment: 
-  #   - setup.kibana.host=kibana:5601
-  #   - output.elasticsearch.hosts=["elasticsearch:9200"]
-  #   # depends_on:
-  #   # - elasticsearch
-  #   networks:
-  #   - elk-network
-  #   volumes:
-  #   - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-  #   # - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #   # - /var/run/docker.sock:/var/run/docker.sock:ro
-
+  filebeat:
+    container_name: filebeat
+    image: docker.elastic.co/beats/filebeat:7.10.2
+    environment: 
+    - output.logstash.hosts=["logstash:5044"]
+    depends_on:
+    - elasticsearch
+    networks:
+    - elk-network
+    volumes:
+    - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    - mulesoftlogs:/usr/local/src

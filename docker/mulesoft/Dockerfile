@@ -19,7 +19,8 @@ RUN apt-get update
 # Install packages
 RUN apt-get install -y \
     bash \
-    curl
+    curl \
+    vim
 
 # Install JDK 8
 # local file
