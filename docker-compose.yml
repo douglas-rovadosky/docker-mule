@@ -46,19 +46,19 @@ services:
     - kongdb:/var/lib/postgresql/data
 
   # somente executar a primeira vez 
-  # kong-migration:
-  #   container_name: kong-migration
-  #   image: kong:2.0.3-alpine
-  #   command: kong migrations bootstrap
-  #   networks:
-  #   - kong-network
-  #   restart: on-failure
-  #   environment: 
-  #   - KONG_PG_HOST=kong-database
-  #   links:
-  #   - kong-database
-  #   depends_on:
-  #   - kong-database
+  kong-migration:
+    container_name: kong-migration
+    image: kong:2.0.3-alpine
+    command: kong migrations bootstrap
+    networks:
+    - kong-network
+    restart: on-failure
+    environment: 
+    - KONG_PG_HOST=kong-database
+    links:
+    - kong-database
+    depends_on:
+    - kong-database
 
   kong:
     container_name: kong
@@ -88,17 +88,17 @@ services:
     - kong-network
 
   # somente executar a primeira vez
-  # konga-prepare:
-  #   container_name: konga-prepare
-  #   image: pantsel/konga:0.14.9
-  #   command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
-  #   networks:
-  #   - kong-network
-  #   restart: on-failure
-  #   links:
-  #   - kong-database
-  #   depends_on:
-  #   - kong-database
+  konga-prepare:
+    container_name: konga-prepare
+    image: pantsel/konga:0.14.9
+    command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
+    networks:
+    - kong-network
+    restart: on-failure
+    links:
+    - kong-database
+    depends_on:
+    - kong-database
   
   konga:
     container_name: konga
@@ -180,12 +180,15 @@ services:
 
   filebeat:
     container_name: filebeat
-    image: docker.elastic.co/beats/filebeat:7.10.2
-    command: filebeat -e -strict.perms=false
+    # image: docker.elastic.co/beats/filebeat:7.10.2
+    build: ./docker/filebeat
+    # environment: 
+    # - output.logstash.hosts=["logstash:5044"]
+    # - filebeat.inputs.paths=\usr\local\src\*.log
     depends_on:
     - elasticsearch
     networks:
     - elk-network
     volumes:
-    - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    # - ./volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
     - mulesoftlogs:/usr/local/src

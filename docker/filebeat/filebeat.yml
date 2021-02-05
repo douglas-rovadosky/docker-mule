@@ -25,7 +25,7 @@ filebeat.inputs:
 
   # Paths that should be crawled and fetched. Glob based paths.
   paths:
-    - \usr\local\src\*.log
+    - /usr/local/src/*.log
     #- c:\programdata\elasticsearch\logs\*
     #- C:\Users\ricardo.santos\Desktop\Kibana\elasticsearch-7.10.2\logs\*
 
