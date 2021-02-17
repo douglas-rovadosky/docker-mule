@@ -13,6 +13,8 @@ volumes:
     driver: local
   kongdb:
     driver: local
+  jenkins:
+    driver: local
 
 services:
   mulesoft:
@@ -46,19 +48,19 @@ services:
     - kongdb:/var/lib/postgresql/data
 
   # somente executar a primeira vez 
-  kong-migration:
-    container_name: kong-migration
-    image: kong:2.0.3-alpine
-    command: kong migrations bootstrap
-    networks:
-    - kong-network
-    restart: on-failure
-    environment: 
-    - KONG_PG_HOST=kong-database
-    links:
-    - kong-database
-    depends_on:
-    - kong-database
+  # kong-migration:
+  #   container_name: kong-migration
+  #   image: kong:2.0.3-alpine
+  #   command: kong migrations bootstrap
+  #   networks:
+  #   - kong-network
+  #   restart: on-failure
+  #   environment: 
+  #   - KONG_PG_HOST=kong-database
+  #   links:
+  #   - kong-database
+  #   depends_on:
+  #   - kong-database
 
   kong:
     container_name: kong
@@ -88,17 +90,17 @@ services:
     - kong-network
 
   # somente executar a primeira vez
-  konga-prepare:
-    container_name: konga-prepare
-    image: pantsel/konga:0.14.9
-    command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
-    networks:
-    - kong-network
-    restart: on-failure
-    links:
-    - kong-database
-    depends_on:
-    - kong-database
+  # konga-prepare:
+  #   container_name: konga-prepare
+  #   image: pantsel/konga:0.14.9
+  #   command: -c prepare -a postgres -u postgresql://kong:kong@kong-database:5432/konga_db
+  #   networks:
+  #   - kong-network
+  #   restart: on-failure
+  #   links:
+  #   - kong-database
+  #   depends_on:
+  #   - kong-database
   
   konga:
     container_name: konga
@@ -121,6 +123,7 @@ services:
   elasticsearch:
     container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    restart: always
     ports:
     - 9200:9200
     - 9300:9300
@@ -142,6 +145,7 @@ services:
   logstash:
     container_name: logstash
     image: docker.elastic.co/logstash/logstash:7.10.2
+    restart: always
     ports:
     - "5044:5044"
     - "5000:5000/tcp"
@@ -166,6 +170,7 @@ services:
   kibana:
     container_name: kibana
     image: docker.elastic.co/kibana/kibana:7.10.2
+    restart: always
     ports:
     - 5601:5601
     networks:
@@ -182,6 +187,7 @@ services:
     container_name: filebeat
     # image: docker.elastic.co/beats/filebeat:7.10.2
     build: ./docker/filebeat
+    restart: always
     # environment: 
     # - output.logstash.hosts=["logstash:5044"]
     # - filebeat.inputs.paths=\usr\local\src\*.log
@@ -192,3 +198,15 @@ services:
     volumes:
     # - ./volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
     - mulesoftlogs:/usr/local/src
+
+  jenkins:
+    container_name: jenkins
+    image: jenkins/jenkins:latest
+    ports:
+    - 8080:8080
+    - 50000:50000
+    networks:
+    - mulesoft-network
+    restart: always
+    volumes:
+    - jenkins:/var/jenkins_home
