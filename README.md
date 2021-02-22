@@ -38,8 +38,44 @@ Kong é o gateway de API de microsserviço de código aberto. Ele está sendo ut
 #### Logstash
 #### Kibana
 #### Jenkins
+Copiar a chave gerada para o primeiro acesso
+Acesse o container utilizando o seguinte comando no CMD:
+```sh
+$ docker exec -it jenkins /bin/bash
+```
+Execute o seguinte comando nesse mesmo CMD:
+```sh
+$ cat /var/jenkins_home/secrets/initialAdminPassword
+```
+Copie essa string gerada, e abra o [Jenkins], cole essa string no campo que está sendo solicitado.
+Criar uma conta de usuario e avance.
+
+Configurar Maven
+Gerenciar Jenkins > Global Tool Configuration > Maven
+    -> Maven instalações...
+    defina o nome como M3 e salve
+
+Configurar novo Job
+Novo Job
+    -> digite um nome para o job
+    -> selecione a opção pipeline
+    -> ok
+
+    -> seleciona as seguintes opções
+        - Consultar periodicamente o SCM 
+          -> defina o seguinte valor H/15 * * * * (ele irá buscar atualizações na branch a cada 15m)
+    -> Pipeline
+        -> selecione o Pipeline script from SCM
+            -> SCM 
+                -> selecione Git
+                    -> configure o repositorio
+                    -> selecione a branch que vai ser observada
+            -> Script Path
+                -> defina o diretorio e o nome do arquivo com o pipeline do jenkins
+    -> salvar
 
 
 [Docker]: <https://docs.docker.com/get-docker/>
 [Docker Compose]: <https://docs.docker.com/compose/>
 [Konga]: <http://localhost:1337/>
+[Jenkins]: <http://localhost:8080/>
