@@ -27,8 +27,7 @@ services:
     - mulesoft-network
     - elk-network
     volumes:
-    # - ./volumes/mulesoft/apps:/opt/mulesoft/apps:ro
-    # - ./volumes/mulesoft/domains:/opt/mulesoft/domains:ro
+    # - ./volumes/mulesoft/apps:/opt/mulesoft/apps
     - mulesoftlogs:/opt/mulesoft/logs
 
   kong-database:
@@ -188,9 +187,6 @@ services:
     # image: docker.elastic.co/beats/filebeat:7.10.2
     build: ./docker/filebeat
     restart: always
-    # environment: 
-    # - output.logstash.hosts=["logstash:5044"]
-    # - filebeat.inputs.paths=\usr\local\src\*.log
     depends_on:
     - elasticsearch
     networks:
@@ -198,6 +194,23 @@ services:
     volumes:
     # - ./volumes/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
     - mulesoftlogs:/usr/local/src
+
+  # fluent:
+  #   container_name: fluent
+  #   image: fluent/fluentd
+  #   ports:
+  #     - 24224:24224
+  #     - 24224:24224/udp
+  #   networks:
+  #   - elk-network
+  #   volumes:
+  #     - /data:/fluentd/log fluent/fluentd
+  
+  # grafana:
+  #   container_name: grafana
+  #   image: grafana/grafana
+  #   ports:
+  #     - 3000:3000
 
   jenkins:
     container_name: jenkins
@@ -210,3 +223,4 @@ services:
     restart: always
     volumes:
     - jenkins:/var/jenkins_home
+# executar a primeira vez o seguinte comando: ssh-copy-id mulesoft@mulesoft senha: changeme
